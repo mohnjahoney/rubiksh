@@ -1,0 +1,25 @@
+:root {
+  color: #f4f4f4;
+  background: radial-gradient(circle at top, #232323 0%, #111111 55%, #090909 100%);
+  font-family: "Menlo", "Monaco", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+canvas {
+  display: block;
+}
