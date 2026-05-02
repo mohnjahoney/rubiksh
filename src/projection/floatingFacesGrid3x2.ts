@@ -40,6 +40,6 @@ function projectFace(cube: CubeState, face: Face): PositionedSticker[] {
   });
 }
 
-export const floatingFacesProjection: Projection = (cube) => {
+export const floatingFacesGrid3x2Projection: Projection = (cube) => {
   return FACES.flatMap((face) => projectFace(cube, face));
 };

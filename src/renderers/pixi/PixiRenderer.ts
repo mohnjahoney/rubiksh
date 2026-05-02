@@ -1,4 +1,5 @@
-import { Application, Container, Graphics } from "pixi.js";
+import { Application, Container, Graphics, Text } from "pixi.js";
+import { DEBUG_SHOW_STICKER_IDS } from "../../debug";
 import type { VisualSticker } from "../../scene/types";
 
 type TransformState = {
@@ -10,7 +11,9 @@ type TransformState = {
 };
 
 type RenderedSticker = {
+  container: Container;
   graphic: Graphics;
+  label?: Text;
   current: TransformState;
   target: TransformState;
   currentColor: number;
@@ -60,13 +63,36 @@ export class PixiRenderer {
       const rendered = this.stickersById.get(visual.id);
 
       if (!rendered) {
+        const container = new Container();
         const graphic = new Graphics();
+        const label = DEBUG_SHOW_STICKER_IDS
+          ? new Text({
+              text: visual.id,
+              style: {
+                fill: 0x111111,
+                fontFamily: "Menlo, Monaco, monospace",
+                fontSize: 13,
+                fontWeight: "700",
+                stroke: {
+                  color: 0xffffff,
+                  width: 4,
+                },
+              },
+            })
+          : undefined;
         const initial = { ...target };
 
-        this.drawSticker(graphic, initial, color);
-        this.root.addChild(graphic);
+        container.addChild(graphic);
+        if (label) {
+          label.anchor.set(0.5);
+          container.addChild(label);
+        }
+        this.drawSticker(container, graphic, label, initial, color);
+        this.root.addChild(container);
         this.stickersById.set(visual.id, {
+          container,
           graphic,
+          label,
           current: initial,
           target,
           currentColor: color,
@@ -81,8 +107,8 @@ export class PixiRenderer {
 
     for (const [id, rendered] of this.stickersById) {
       if (!activeIds.has(id)) {
-        this.root.removeChild(rendered.graphic);
-        rendered.graphic.destroy();
+        this.root.removeChild(rendered.container);
+        rendered.container.destroy({ children: true });
         this.stickersById.delete(id);
       }
     }
@@ -91,7 +117,7 @@ export class PixiRenderer {
   destroy(): void {
     this.application.ticker.remove(this.tick);
     for (const rendered of this.stickersById.values()) {
-      rendered.graphic.destroy();
+      rendered.container.destroy({ children: true });
     }
     this.stickersById.clear();
     this.root.destroy({ children: true });
@@ -125,16 +151,27 @@ export class PixiRenderer {
         rendered.currentColor = rendered.targetColor;
       }
 
-      this.drawSticker(rendered.graphic, rendered.current, rendered.currentColor);
+      this.drawSticker(rendered.container, rendered.graphic, rendered.label, rendered.current, rendered.currentColor);
     }
   };
 
-  private drawSticker(graphic: Graphics, transform: TransformState, color: number): void {
+  private drawSticker(
+    container: Container,
+    graphic: Graphics,
+    label: Text | undefined,
+    transform: TransformState,
+    color: number,
+  ): void {
     graphic.clear();
     graphic.roundRect(-transform.width / 2, -transform.height / 2, transform.width, transform.height, 8);
     graphic.fill({ color });
     graphic.stroke({ width: 3, color: 0x1c1c1c, alpha: 0.9 });
-    graphic.position.set(transform.x + transform.width / 2, transform.y + transform.height / 2);
-    graphic.rotation = transform.rotation;
+    container.position.set(transform.x + transform.width / 2, transform.y + transform.height / 2);
+    container.rotation = transform.rotation;
+
+    if (label) {
+      label.style.fontSize = Math.max(10, Math.min(14, transform.width * 0.24));
+      label.position.set(0, 0);
+    }
   }
 }

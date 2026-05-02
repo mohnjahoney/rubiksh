@@ -69,6 +69,27 @@ const MOVE_SPECS: Record<Exclude<Move, `${string}2`>, { axis: Axis; layer: -1 | 
   "R'": { axis: "x", layer: 1, turns: 1 },
 };
 
+export const allMoves: Move[] = [
+  "U",
+  "U'",
+  "U2",
+  "D",
+  "D'",
+  "D2",
+  "F",
+  "F'",
+  "F2",
+  "B",
+  "B'",
+  "B2",
+  "L",
+  "L'",
+  "L2",
+  "R",
+  "R'",
+  "R2",
+];
+
 function add(a: Vec3, b: Vec3): Vec3 {
   return {
     x: (a.x + b.x) as Vec3["x"],
@@ -195,4 +216,23 @@ export function applyMove(cube: CubeState, move: Move): CubeState {
 
 export function applyMoves(cube: CubeState, moves: Move[]): CubeState {
   return moves.reduce((current, move) => applyMove(current, move), cube);
+}
+
+export function inverseMove(move: Move): Move {
+  if (move.endsWith("2")) {
+    return move;
+  }
+
+  if (move.endsWith("'")) {
+    return move[0] as Move;
+  }
+
+  return `${move}'` as Move;
+}
+
+export function randomMoves(count: number): Move[] {
+  return Array.from({ length: count }, () => {
+    const index = Math.floor(Math.random() * allMoves.length);
+    return allMoves[index];
+  });
 }
