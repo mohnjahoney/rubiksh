@@ -1,1 +1,1 @@
-export const DEBUG_SHOW_STICKER_IDS = true;
+export const DEBUG_SHOW_STICKER_IDS = false;

@@ -1,6 +1,9 @@
-import { Application, Container, Graphics, Text } from "pixi.js";
+import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text, Texture } from "pixi.js";
+import { FACES, type Face } from "../../core/types";
 import { DEBUG_SHOW_STICKER_IDS } from "../../debug";
 import type { VisualSticker } from "../../scene/types";
+import { faceImages } from "../../skin/faceImages";
+import { FACE_COLORS, type Material } from "../../skin/types";
 
 type TransformState = {
   x: number;
@@ -12,12 +15,13 @@ type TransformState = {
 
 type RenderedSticker = {
   container: Container;
-  graphic: Graphics;
+  body: Graphics | Sprite;
+  border: Graphics;
+  mask?: Graphics;
   label?: Text;
+  material: Material;
   current: TransformState;
   target: TransformState;
-  currentColor: number;
-  targetColor: number;
 };
 
 function toPixiColor(r: number, g: number, b: number): number {
@@ -36,22 +40,24 @@ export class PixiRenderer {
   private readonly application: Application;
   private readonly root: Container;
   private readonly stickersById = new Map<string, RenderedSticker>();
+  private readonly faceTextures = new Map<Face, Texture>();
+  private readonly tileTextures = new Map<string, Texture>();
+  private lastScene: VisualSticker[] = [];
+  private isDestroyed = false;
 
   constructor(application: Application) {
     this.application = application;
     this.root = new Container();
     this.application.stage.addChild(this.root);
     this.application.ticker.add(this.tick);
+    void this.loadFaceTextures();
   }
 
   setScene(scene: VisualSticker[]): void {
+    this.lastScene = scene;
     const activeIds = new Set(scene.map((sticker) => sticker.id));
 
     for (const visual of scene) {
-      if (visual.material.kind !== "solid") {
-        throw new Error("PixiRenderer v1 only supports solid materials");
-      }
-
       const target: TransformState = {
         x: visual.x,
         y: visual.y,
@@ -59,19 +65,25 @@ export class PixiRenderer {
         height: visual.height,
         rotation: visual.rotation,
       };
-      const color = toPixiColor(visual.material.color.r, visual.material.color.g, visual.material.color.b);
       const rendered = this.stickersById.get(visual.id);
 
       if (!rendered) {
         const container = new Container();
-        const graphic = new Graphics();
+        const body = this.createBody(visual.material);
+        const mask = body instanceof Sprite ? new Graphics() : undefined;
+        const border = new Graphics();
+
+        if (mask && body instanceof Sprite) {
+          body.mask = mask;
+        }
+
         const label = DEBUG_SHOW_STICKER_IDS
           ? new Text({
               text: visual.id,
               style: {
                 fill: 0x111111,
                 fontFamily: "Menlo, Monaco, monospace",
-                fontSize: 13,
+                fontSize: 48,
                 fontWeight: "700",
                 stroke: {
                   color: 0xffffff,
@@ -82,27 +94,32 @@ export class PixiRenderer {
           : undefined;
         const initial = { ...target };
 
-        container.addChild(graphic);
+        container.addChild(body);
+        if (mask) {
+          container.addChild(mask);
+        }
+        container.addChild(border);
         if (label) {
           label.anchor.set(0.5);
           container.addChild(label);
         }
-        this.drawSticker(container, graphic, label, initial, color);
+        this.drawSticker(container, body, border, mask, label, initial, visual.material);
         this.root.addChild(container);
         this.stickersById.set(visual.id, {
           container,
-          graphic,
+          body,
+          border,
+          mask,
           label,
+          material: visual.material,
           current: initial,
           target,
-          currentColor: color,
-          targetColor: color,
         });
         continue;
       }
 
       rendered.target = target;
-      rendered.targetColor = color;
+      this.updateMaterial(rendered, visual.material);
     }
 
     for (const [id, rendered] of this.stickersById) {
@@ -115,11 +132,16 @@ export class PixiRenderer {
   }
 
   destroy(): void {
+    this.isDestroyed = true;
     this.application.ticker.remove(this.tick);
     for (const rendered of this.stickersById.values()) {
       rendered.container.destroy({ children: true });
     }
     this.stickersById.clear();
+    for (const texture of this.tileTextures.values()) {
+      texture.destroy(false);
+    }
+    this.tileTextures.clear();
     this.root.destroy({ children: true });
   }
 
@@ -147,31 +169,176 @@ export class PixiRenderer {
         rendered.current.rotation = rendered.target.rotation;
       }
 
-      if (rendered.currentColor !== rendered.targetColor) {
-        rendered.currentColor = rendered.targetColor;
-      }
-
-      this.drawSticker(rendered.container, rendered.graphic, rendered.label, rendered.current, rendered.currentColor);
+      this.drawSticker(
+        rendered.container,
+        rendered.body,
+        rendered.border,
+        rendered.mask,
+        rendered.label,
+        rendered.current,
+        rendered.material,
+      );
     }
   };
 
   private drawSticker(
     container: Container,
-    graphic: Graphics,
+    body: Graphics | Sprite,
+    border: Graphics,
+    mask: Graphics | undefined,
     label: Text | undefined,
     transform: TransformState,
-    color: number,
+    material: Material,
   ): void {
-    graphic.clear();
-    graphic.roundRect(-transform.width / 2, -transform.height / 2, transform.width, transform.height, 8);
-    graphic.fill({ color });
-    graphic.stroke({ width: 3, color: 0x1c1c1c, alpha: 0.9 });
+    if (body instanceof Graphics) {
+      const color = material.kind === "solid" ? toPixiColor(material.color.r, material.color.g, material.color.b) : this.placeholderColor(material.imageId);
+
+      body.clear();
+      body.roundRect(-transform.width / 2, -transform.height / 2, transform.width, transform.height, 8);
+      body.fill({ color });
+    } else {
+      body.width = transform.width;
+      body.height = transform.height;
+      body.position.set(0, 0);
+    }
+
+    if (mask) {
+      mask.clear();
+      mask.roundRect(-transform.width / 2, -transform.height / 2, transform.width, transform.height, 8);
+      mask.fill({ color: 0xffffff });
+    }
+
+    border.clear();
+    border.roundRect(-transform.width / 2, -transform.height / 2, transform.width, transform.height, 8);
+    // border.stroke({ width: 3, color: 0x1c1c1c, alpha: 0.9 });
+    border.stroke({ width: 0, color: 0xff00aa, alpha: 1 });
     container.position.set(transform.x + transform.width / 2, transform.y + transform.height / 2);
     container.rotation = transform.rotation;
 
     if (label) {
-      label.style.fontSize = Math.max(10, Math.min(14, transform.width * 0.24));
+      // label.style.fontSize = Math.max(10, Math.min(14, transform.width * 0.24));
+      label.style.fontSize = 24;
       label.position.set(0, 0);
+    }
+  }
+
+  private createBody(material: Material): Graphics | Sprite {
+    if (material.kind === "imageTile") {
+      const texture = this.getImageTileTexture(material);
+
+      if (texture) {
+        const sprite = new Sprite(texture);
+        sprite.anchor.set(0.5);
+        return sprite;
+      }
+    }
+
+    return new Graphics();
+  }
+
+  private updateMaterial(rendered: RenderedSticker, material: Material): void {
+    const needsBodySwap = this.materialBodyKind(rendered.body) !== this.requiredBodyKind(material);
+    const sameMaterial = this.materialKey(rendered.material) === this.materialKey(material);
+
+    rendered.material = material;
+
+    if (!needsBodySwap && sameMaterial) {
+      return;
+    }
+
+    if (material.kind === "imageTile" && rendered.body instanceof Sprite) {
+      const texture = this.getImageTileTexture(material);
+
+      if (texture) {
+        rendered.body.texture = texture;
+        return;
+      }
+    }
+
+    const nextBody = this.createBody(material);
+    const nextMask = nextBody instanceof Sprite ? new Graphics() : undefined;
+
+    if (nextMask && nextBody instanceof Sprite) {
+      nextBody.mask = nextMask;
+    }
+
+    if (!needsBodySwap && nextBody instanceof Graphics && rendered.body instanceof Graphics) {
+      return;
+    }
+
+    rendered.container.removeChild(rendered.body);
+    rendered.body.destroy();
+
+    if (rendered.mask) {
+      rendered.container.removeChild(rendered.mask);
+      rendered.mask.destroy();
+    }
+
+    rendered.body = nextBody;
+    rendered.mask = nextMask;
+    rendered.container.addChildAt(nextBody, 0);
+
+    if (nextMask) {
+      rendered.container.addChildAt(nextMask, 1);
+    }
+  }
+
+  private requiredBodyKind(material: Material): "graphics" | "sprite" {
+    return material.kind === "imageTile" && this.getImageTileTexture(material) ? "sprite" : "graphics";
+  }
+
+  private materialBodyKind(body: Graphics | Sprite): "graphics" | "sprite" {
+    return body instanceof Sprite ? "sprite" : "graphics";
+  }
+
+  private getImageTileTexture(material: Extract<Material, { kind: "imageTile" }>): Texture | undefined {
+    const faceTexture = this.faceTextures.get(material.imageId);
+
+    if (!faceTexture) {
+      return undefined;
+    }
+
+    const key = this.materialKey(material);
+    const cached = this.tileTextures.get(key);
+
+    if (cached) {
+      return cached;
+    }
+
+    const { x, y, width, height } = material.sourceRect;
+    const texture = new Texture({
+      source: faceTexture.source,
+      frame: new Rectangle(x, y, width, height),
+    });
+
+    this.tileTextures.set(key, texture);
+    return texture;
+  }
+
+  private materialKey(material: Material): string {
+    if (material.kind === "solid") {
+      return `solid:${material.color.r},${material.color.g},${material.color.b}`;
+    }
+
+    const { x, y, width, height } = material.sourceRect;
+    return `image:${material.imageId}:${x},${y},${width},${height}`;
+  }
+
+  private placeholderColor(face: Face): number {
+    const color = FACE_COLORS[face];
+    return toPixiColor(color.r, color.g, color.b);
+  }
+
+  private async loadFaceTextures(): Promise<void> {
+    await Promise.all(
+      FACES.map(async (face) => {
+        const texture = await Assets.load<Texture>(faceImages[face].url);
+        this.faceTextures.set(face, texture);
+      }),
+    );
+
+    if (!this.isDestroyed) {
+      this.setScene(this.lastScene);
     }
   }
 }

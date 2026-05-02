@@ -16,7 +16,7 @@ export type Rect = {
 
 export type Material =
   | { kind: "solid"; color: RGB }
-  | { kind: "imageTile"; imageId: string; sourceRect: Rect };
+  | { kind: "imageTile"; imageId: Face; sourceRect: Rect };
 
 export type Skin = (positioned: PositionedSticker) => Material;
 

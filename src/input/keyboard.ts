@@ -1,5 +1,6 @@
 import type { Move } from "../core/types";
 import type { ProjectionId } from "../projection/registry";
+import type { SkinId } from "../skin/registry";
 
 const KEY_TO_FACE: Record<string, Move> = {
   u: "U",
@@ -16,6 +17,11 @@ const KEY_TO_PROJECTION: Record<string, ProjectionId> = {
   "3": "cubeNetCross",
 };
 
+const KEY_TO_SKIN: Record<string, SkinId> = {
+  c: "solidColors",
+  i: "imageTiles",
+};
+
 export type KeyboardAction =
   | {
       kind: "move";
@@ -24,6 +30,10 @@ export type KeyboardAction =
   | {
       kind: "projection";
       projectionId: ProjectionId;
+    }
+  | {
+      kind: "skin";
+      skinId: SkinId;
     }
   | {
       kind: "reset";
@@ -39,10 +49,17 @@ export function bindKeyboardInput(onAction: (action: KeyboardAction) => void): (
   const handler = (event: KeyboardEvent): void => {
     const key = event.key.toLowerCase();
     const projectionId = KEY_TO_PROJECTION[key];
+    const skinId = KEY_TO_SKIN[key];
 
     if (projectionId) {
       event.preventDefault();
       onAction({ kind: "projection", projectionId });
+      return;
+    }
+
+    if (skinId) {
+      event.preventDefault();
+      onAction({ kind: "skin", skinId });
       return;
     }
 

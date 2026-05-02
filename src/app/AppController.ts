@@ -6,12 +6,12 @@ import { bindKeyboardInput, type KeyboardAction } from "../input/keyboard";
 import { projectionNames, projections, type ProjectionId } from "../projection/registry";
 import { buildScene } from "../scene/buildScene";
 import { PixiRenderer } from "../renderers/pixi/PixiRenderer";
-import { solidColorSkin } from "../skin/solidColors";
+import { skinNames, skins, type SkinId } from "../skin/registry";
 
 type AppState = {
   cube: CubeState;
   projectionId: ProjectionId;
-  skinId: "solidColors";
+  skinId: SkinId;
   moveHistory: Move[];
 };
 
@@ -65,6 +65,8 @@ export class AppController {
       background: "#111111",
       antialias: true,
       resizeTo: window,
+      resolution: window.devicePixelRatio,
+      autoDensity: true,
     });
     container.appendChild(app.canvas);
 
@@ -88,6 +90,11 @@ export class AppController {
 
     if (action.kind === "projection") {
       this.setProjection(action.projectionId);
+      return;
+    }
+
+    if (action.kind === "skin") {
+      this.setSkin(action.skinId);
       return;
     }
 
@@ -117,6 +124,14 @@ export class AppController {
     this.state = {
       ...this.state,
       projectionId,
+    };
+    this.render();
+  }
+
+  private setSkin(skinId: SkinId): void {
+    this.state = {
+      ...this.state,
+      skinId,
     };
     this.render();
   }
@@ -163,11 +178,12 @@ export class AppController {
   };
 
   private render(): void {
-    const scene = buildScene(this.state.cube, projections[this.state.projectionId], solidColorSkin);
+    const scene = buildScene(this.state.cube, projections[this.state.projectionId], skins[this.state.skinId]);
     this.renderer.setScene(scene);
     this.instructionLabel.text = [
-      "Moves: U D F B L R | Shift=inverse | s=scramble | z=undo | Esc=reset",
+      "Moves: U D F B L R | Shift=inverse | s=scramble | z=undo | Esc=reset | c/i=skin",
       `Projection: ${projectionNames[this.state.projectionId]} | 1 Grid | 2 Hex | 3 Net`,
+      `Skin: ${skinNames[this.state.skinId]}`,
     ].join("\n");
     this.historyLabel.text = `History: ${this.state.moveHistory.join(" ") || "(empty)"}`;
   }
