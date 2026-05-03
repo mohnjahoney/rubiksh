@@ -1,5 +1,5 @@
 import { FACES, type CubeState, type Face } from "../core/types";
-import type { PositionedSticker, Projection } from "./types";
+import type { PositionedSticker, Projection, ProjectionConfig } from "./types";
 
 type FaceGridPosition = {
   column: number;
@@ -15,18 +15,22 @@ const FACE_LAYOUT: Record<Face, FaceGridPosition> = {
   D: { column: 1, row: 2 },
 };
 
-const STICKER_SIZE = 52;
-const STICKER_GAP = 2;
-const FACE_GAP = 4;
-const FACE_SPAN = STICKER_SIZE * 3 + STICKER_GAP * 2;
+export const cubeNetCrossConfig: ProjectionConfig = {
+  stickerSize: 52,
+  stickerGap: 2,
+  faceGap: 4,
+  cornerRadius: 8,
+};
+
+const FACE_SPAN = cubeNetCrossConfig.stickerSize * 3 + cubeNetCrossConfig.stickerGap * 2;
 const ORIGIN = { x: 110, y: 80 };
 
 function projectFace(cube: CubeState, face: Face): PositionedSticker[] {
   const faceStickers = cube[face];
   const facePosition = FACE_LAYOUT[face];
   const anchor = {
-    x: ORIGIN.x + facePosition.column * (FACE_SPAN + FACE_GAP),
-    y: ORIGIN.y + facePosition.row * (FACE_SPAN + FACE_GAP),
+    x: ORIGIN.x + facePosition.column * (FACE_SPAN + cubeNetCrossConfig.faceGap),
+    y: ORIGIN.y + facePosition.row * (FACE_SPAN + cubeNetCrossConfig.faceGap),
   };
 
   return faceStickers.map((sticker, index) => {
@@ -38,10 +42,15 @@ function projectFace(cube: CubeState, face: Face): PositionedSticker[] {
       sticker,
       face,
       index,
-      x: anchor.x + column * (STICKER_SIZE + STICKER_GAP),
-      y: anchor.y + row * (STICKER_SIZE + STICKER_GAP),
-      width: STICKER_SIZE,
-      height: STICKER_SIZE,
+      x: anchor.x + column * (cubeNetCrossConfig.stickerSize + cubeNetCrossConfig.stickerGap),
+      y: anchor.y + row * (cubeNetCrossConfig.stickerSize + cubeNetCrossConfig.stickerGap),
+      width: cubeNetCrossConfig.stickerSize,
+      height: cubeNetCrossConfig.stickerSize,
+      cornerRadius: cubeNetCrossConfig.cornerRadius,
+      layout: {
+        stickerSize: cubeNetCrossConfig.stickerSize,
+        stickerGap: cubeNetCrossConfig.stickerGap,
+      },
       rotation: 0,
     };
   });

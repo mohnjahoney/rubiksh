@@ -1,14 +1,19 @@
 import { FACES, type CubeState, type Face } from "../core/types";
-import type { PositionedSticker, Projection } from "./types";
+import type { PositionedSticker, Projection, ProjectionConfig } from "./types";
 
 type FaceCenter = {
   x: number;
   y: number;
 };
 
-const STICKER_SIZE = 48;
-const GAP = 5;
-const FACE_SPAN = STICKER_SIZE * 3 + GAP * 2;
+export const floatingFacesHexConfig: ProjectionConfig = {
+  stickerSize: 48,
+  stickerGap: 5,
+  faceGap: 85,
+  cornerRadius: 8,
+};
+
+const FACE_SPAN = floatingFacesHexConfig.stickerSize * 3 + floatingFacesHexConfig.stickerGap * 2;
 
 const CENTER = { x: 460, y: 320 };
 const RADIUS = 235;
@@ -41,10 +46,15 @@ function projectFace(cube: CubeState, face: Face): PositionedSticker[] {
       sticker,
       face,
       index,
-      x: anchor.x + column * (STICKER_SIZE + GAP),
-      y: anchor.y + row * (STICKER_SIZE + GAP),
-      width: STICKER_SIZE,
-      height: STICKER_SIZE,
+      x: anchor.x + column * (floatingFacesHexConfig.stickerSize + floatingFacesHexConfig.stickerGap),
+      y: anchor.y + row * (floatingFacesHexConfig.stickerSize + floatingFacesHexConfig.stickerGap),
+      width: floatingFacesHexConfig.stickerSize,
+      height: floatingFacesHexConfig.stickerSize,
+      cornerRadius: floatingFacesHexConfig.cornerRadius,
+      layout: {
+        stickerSize: floatingFacesHexConfig.stickerSize,
+        stickerGap: floatingFacesHexConfig.stickerGap,
+      },
       rotation: 0,
     };
   });

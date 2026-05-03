@@ -10,6 +10,7 @@ type TransformState = {
   y: number;
   width: number;
   height: number;
+  cornerRadius: number;
   rotation: number;
 };
 
@@ -63,6 +64,7 @@ export class PixiRenderer {
         y: visual.y,
         width: visual.width,
         height: visual.height,
+        cornerRadius: visual.cornerRadius,
         rotation: visual.rotation,
       };
       const rendered = this.stickersById.get(visual.id);
@@ -151,6 +153,7 @@ export class PixiRenderer {
       rendered.current.y = lerp(rendered.current.y, rendered.target.y, 0.2);
       rendered.current.width = lerp(rendered.current.width, rendered.target.width, 0.2);
       rendered.current.height = lerp(rendered.current.height, rendered.target.height, 0.2);
+      rendered.current.cornerRadius = lerp(rendered.current.cornerRadius, rendered.target.cornerRadius, 0.2);
       rendered.current.rotation = lerp(rendered.current.rotation, rendered.target.rotation, 0.2);
 
       if (closeEnough(rendered.current.x, rendered.target.x)) {
@@ -164,6 +167,9 @@ export class PixiRenderer {
       }
       if (closeEnough(rendered.current.height, rendered.target.height)) {
         rendered.current.height = rendered.target.height;
+      }
+      if (closeEnough(rendered.current.cornerRadius, rendered.target.cornerRadius)) {
+        rendered.current.cornerRadius = rendered.target.cornerRadius;
       }
       if (closeEnough(rendered.current.rotation, rendered.target.rotation)) {
         rendered.current.rotation = rendered.target.rotation;
@@ -194,7 +200,13 @@ export class PixiRenderer {
       const color = material.kind === "solid" ? toPixiColor(material.color.r, material.color.g, material.color.b) : this.placeholderColor(material.imageId);
 
       body.clear();
-      body.roundRect(-transform.width / 2, -transform.height / 2, transform.width, transform.height, 8);
+      body.roundRect(
+        -transform.width / 2,
+        -transform.height / 2,
+        transform.width,
+        transform.height,
+        transform.cornerRadius,
+      );
       body.fill({ color });
     } else {
       body.width = transform.width;
@@ -204,14 +216,25 @@ export class PixiRenderer {
 
     if (mask) {
       mask.clear();
-      mask.roundRect(-transform.width / 2, -transform.height / 2, transform.width, transform.height, 8);
+      mask.roundRect(
+        -transform.width / 2,
+        -transform.height / 2,
+        transform.width,
+        transform.height,
+        transform.cornerRadius,
+      );
       mask.fill({ color: 0xffffff });
     }
 
     border.clear();
-    border.roundRect(-transform.width / 2, -transform.height / 2, transform.width, transform.height, 8);
-    // border.stroke({ width: 3, color: 0x1c1c1c, alpha: 0.9 });
-    border.stroke({ width: 0, color: 0xff00aa, alpha: 1 });
+    border.roundRect(
+      -transform.width / 2,
+      -transform.height / 2,
+      transform.width,
+      transform.height,
+      transform.cornerRadius,
+    );
+    border.stroke({ width: 0, color: 0xff8822, alpha: 0.9 });
     container.position.set(transform.x + transform.width / 2, transform.y + transform.height / 2);
     container.rotation = transform.rotation;
 

@@ -1,5 +1,5 @@
 import { FACES, type CubeState, type Face } from "../core/types";
-import type { PositionedSticker, Projection } from "./types";
+import type { PositionedSticker, Projection, ProjectionConfig } from "./types";
 
 type FaceAnchor = {
   x: number;
@@ -15,8 +15,12 @@ const FACE_LAYOUT: Record<Face, FaceAnchor> = {
   R: { x: 620, y: 340 },
 };
 
-const STICKER_SIZE = 58;
-const GAP = 6;
+export const floatingFacesGrid3x2Config: ProjectionConfig = {
+  stickerSize: 58,
+  stickerGap: 6,
+  faceGap: 74,
+  cornerRadius: 8,
+};
 
 function projectFace(cube: CubeState, face: Face): PositionedSticker[] {
   const faceStickers = cube[face];
@@ -31,10 +35,15 @@ function projectFace(cube: CubeState, face: Face): PositionedSticker[] {
       sticker,
       face,
       index,
-      x: anchor.x + column * (STICKER_SIZE + GAP),
-      y: anchor.y + row * (STICKER_SIZE + GAP),
-      width: STICKER_SIZE,
-      height: STICKER_SIZE,
+      x: anchor.x + column * (floatingFacesGrid3x2Config.stickerSize + floatingFacesGrid3x2Config.stickerGap),
+      y: anchor.y + row * (floatingFacesGrid3x2Config.stickerSize + floatingFacesGrid3x2Config.stickerGap),
+      width: floatingFacesGrid3x2Config.stickerSize,
+      height: floatingFacesGrid3x2Config.stickerSize,
+      cornerRadius: floatingFacesGrid3x2Config.cornerRadius,
+      layout: {
+        stickerSize: floatingFacesGrid3x2Config.stickerSize,
+        stickerGap: floatingFacesGrid3x2Config.stickerGap,
+      },
       rotation: 0,
     };
   });

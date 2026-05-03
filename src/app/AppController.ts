@@ -178,7 +178,8 @@ export class AppController {
   };
 
   private render(): void {
-    const scene = buildScene(this.state.cube, projections[this.state.projectionId], skins[this.state.skinId]);
+    const projectionEntry = projections[this.state.projectionId];
+    const scene = buildScene(this.state.cube, projectionEntry.project, skins[this.state.skinId]);
     this.renderer.setScene(scene);
     this.instructionLabel.text = [
       "Moves: U D F B L R | Shift=inverse | s=scramble | z=undo | Esc=reset | c/i=skin",
