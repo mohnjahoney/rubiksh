@@ -1,12 +1,12 @@
 import type { Face } from "../core/types";
-import { faceImages } from "./faceImages";
+import { getFaceImage } from "./faceImages";
 import type { Rect, Skin } from "./types";
 import { Texture } from "pixi.js";
 
 const tileRectsByFaceAndGap = new Map<string, Rect[]>();
 
 function computeTileRects(face: Face, gapRatio: number): Rect[] {
-  const meta = faceImages[face];
+  const meta = getFaceImage(face);
   const texture = Texture.from(meta.url);
 
   // Wait until texture has valid dimensions
@@ -59,6 +59,7 @@ function computeTileRects(face: Face, gapRatio: number): Rect[] {
 
 export const imageTileSkin: Skin = (positioned) => {
   const imageId = positioned.sticker.homeFace;
+  const image = getFaceImage(imageId);
 
   const gapRatio =
     positioned.layout.stickerSize === 0
@@ -72,6 +73,7 @@ export const imageTileSkin: Skin = (positioned) => {
   return {
     kind: "imageTile",
     imageId,
+    imageUrl: image.url,
     sourceRect,
   };
 };

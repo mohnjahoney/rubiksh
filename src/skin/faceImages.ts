@@ -1,4 +1,5 @@
 import type { Face } from "../core/types";
+import { getPhoto, type FaceId } from "../photo/photoStorage";
 
 // import allImageUrl from "../assets/images/cats/all.png";
 
@@ -20,7 +21,7 @@ export type FaceImageMetadata = {
   url: string;
 };
 
-export const faceImages: Record<Face, FaceImageMetadata> = {
+const defaultFaceImages: Record<Face, FaceImageMetadata> = {
   U: { url: uImageUrl },
   D: { url: dImageUrl },
   F: { url: fImageUrl },
@@ -28,3 +29,13 @@ export const faceImages: Record<Face, FaceImageMetadata> = {
   L: { url: lImageUrl },
   R: { url: rImageUrl },
 };
+
+export function getFaceImage(face: Face): FaceImageMetadata {
+  const photo = getPhoto(face as FaceId);
+
+  if (photo) {
+    return { url: photo };
+  }
+
+  return defaultFaceImages[face];
+}

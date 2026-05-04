@@ -1,7 +1,7 @@
 import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text, Texture } from "pixi.js";
 import { FACES, type Face } from "../../core/types";
 import type { VisualSticker } from "../../scene/types";
-import { faceImages } from "../../skin/faceImages";
+import { getFaceImage } from "../../skin/faceImages";
 import { FACE_COLORS, type Material } from "../../skin/types";
 
 type TransformState = {
@@ -45,6 +45,7 @@ export class PixiRenderer {
   private lastScene: VisualSticker[] = [];
   private showStickerIds = false;
   private isDestroyed = false;
+  private textureLoadVersion = 0;
 
   constructor(application: Application) {
     this.application = application;
@@ -161,6 +162,10 @@ export class PixiRenderer {
         rendered.label = undefined;
       }
     }
+  }
+
+  async reloadFaceTextures(): Promise<void> {
+    await this.loadFaceTextures();
   }
 
   private readonly tick = (): void => {
@@ -390,7 +395,7 @@ export class PixiRenderer {
     }
 
     const { x, y, width, height } = material.sourceRect;
-    return `image:${material.imageId}:${x},${y},${width},${height}`;
+    return `image:${material.imageId}:${material.imageUrl}:${x},${y},${width},${height}`;
   }
 
   private placeholderColor(face: Face): number {
@@ -399,15 +404,28 @@ export class PixiRenderer {
   }
 
   private async loadFaceTextures(): Promise<void> {
-    await Promise.all(
+    const loadVersion = ++this.textureLoadVersion;
+    const textures = await Promise.all(
       FACES.map(async (face) => {
-        const texture = await Assets.load<Texture>(faceImages[face].url);
-        this.faceTextures.set(face, texture);
+        const texture = await Assets.load<Texture>(getFaceImage(face).url);
+        return [face, texture] as const;
       }),
     );
 
-    if (!this.isDestroyed) {
-      this.setScene(this.lastScene);
+    if (this.isDestroyed || loadVersion !== this.textureLoadVersion) {
+      return;
     }
+
+    for (const texture of this.tileTextures.values()) {
+      texture.destroy(false);
+    }
+    this.tileTextures.clear();
+    this.faceTextures.clear();
+
+    for (const [face, texture] of textures) {
+      this.faceTextures.set(face, texture);
+    }
+
+    this.setScene(this.lastScene);
   }
 }

@@ -187,6 +187,12 @@ export class AppController {
     this.render();
   }
 
+  refreshSkin(): void {
+    void this.renderer.reloadFaceTextures().then(() => {
+      this.render();
+    });
+  }
+
   private reset(): void {
     this.state = {
       ...this.state,
