@@ -30,6 +30,7 @@ export class AppController {
       cube: createSolvedCube(),
       projectionId: "floatingFacesGrid3x2",
       skinId: "solidColors",
+      // skinId: "imageTiles",
       moveHistory: [],
     };
     this.instructionLabel = new Text({

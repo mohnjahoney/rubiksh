@@ -234,7 +234,8 @@ export class PixiRenderer {
       transform.height,
       transform.cornerRadius,
     );
-    border.stroke({ width: 0, color: 0xff8822, alpha: 0.9 });
+    // border.stroke({ width: 1, color: 0xffffff, alpha: 0.9 });
+    border.stroke({ width: 1, color: 0x888888, alpha: 0.9 });
     container.position.set(transform.x + transform.width / 2, transform.y + transform.height / 2);
     container.rotation = transform.rotation;
 
@@ -329,9 +330,19 @@ export class PixiRenderer {
     }
 
     const { x, y, width, height } = material.sourceRect;
+
+    if (width <= 0 || height <= 0) {
+      return undefined;
+    }
+
+    const clampedX = Math.max(0, Math.floor(x));
+    const clampedY = Math.max(0, Math.floor(y));
+    const clampedWidth = Math.min(Math.floor(width), faceTexture.source.width - clampedX);
+    const clampedHeight = Math.min(Math.floor(height), faceTexture.source.height - clampedY);
+
     const texture = new Texture({
       source: faceTexture.source,
-      frame: new Rectangle(x, y, width, height),
+      frame: new Rectangle(clampedX, clampedY, clampedWidth, clampedHeight),
     });
 
     this.tileTextures.set(key, texture);

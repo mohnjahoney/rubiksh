@@ -10,7 +10,7 @@ function computeTileRects(face: Face, gapRatio: number): Rect[] {
   const texture = Texture.from(meta.url);
 
   // Wait until texture has valid dimensions
-  if (!texture.width || !texture.height) {
+  if (!texture || !texture.width || !texture.height) {
     // Return safe fallback (avoids NaN + WebGL crash)
     return Array.from({ length: 9 }, () => ({ x: 0, y: 0, width: 1, height: 1 }));
   }
@@ -19,7 +19,8 @@ function computeTileRects(face: Face, gapRatio: number): Rect[] {
   // const height = texture.height;
   const source = texture.source;
 
-  if (!source.width || !source.height) {
+  if (!source ||!source.width || !source.height) {
+    console.warn("imageTiles: source missing");
     return Array.from({ length: 9 }, () => ({ x: 0, y: 0, width: 1, height: 1 }));
   }
   
