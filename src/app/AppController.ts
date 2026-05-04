@@ -12,27 +12,47 @@ type AppState = {
   cube: CubeState;
   projectionId: ProjectionId;
   skinId: SkinId;
+  debug: boolean;
   moveHistory: Move[];
+};
+
+export type AppConfig = {
+  projectionId: ProjectionId;
+  skinId: SkinId;
+  debug: boolean;
+};
+
+export const initialAppConfig: AppConfig = {
+  projectionId: "floatingFacesGrid3x2",
+  skinId: "solidColors",
+  debug: false,
+};
+
+type AppControllerHandlers = {
+  onProjectionChange: (projectionId: ProjectionId) => void;
+  onSkinChange: (skinId: SkinId) => void;
+  onDebugToggle: () => void;
 };
 
 export class AppController {
   private readonly app: Application;
   private readonly renderer: PixiRenderer;
+  private readonly handlers: AppControllerHandlers;
   private readonly cleanupKeyboard: () => void;
   private readonly instructionLabel: Text;
   private readonly historyLabel: Text;
   private state: AppState;
 
-  private constructor(app: Application) {
+  private constructor(app: Application, config: AppConfig, handlers: AppControllerHandlers) {
     this.app = app;
+    this.handlers = handlers;
     this.renderer = new PixiRenderer(app);
     this.state = {
       cube: createSolvedCube(),
-      projectionId: "floatingFacesGrid3x2",
-      skinId: "solidColors",
-      // skinId: "imageTiles",
+      ...config,
       moveHistory: [],
     };
+    this.renderer.setDebug(this.state.debug);
     this.instructionLabel = new Text({
       text: "",
       style: {
@@ -60,7 +80,11 @@ export class AppController {
     this.render();
   }
 
-  static async mount(container: HTMLElement): Promise<AppController> {
+  static async mount(
+    container: HTMLElement,
+    config: AppConfig,
+    handlers: AppControllerHandlers,
+  ): Promise<AppController> {
     const app = new Application();
     await app.init({
       background: "#111111",
@@ -71,7 +95,7 @@ export class AppController {
     });
     container.appendChild(app.canvas);
 
-    return new AppController(app);
+    return new AppController(app, config, handlers);
   }
 
   destroy(): void {
@@ -90,12 +114,17 @@ export class AppController {
     }
 
     if (action.kind === "projection") {
-      this.setProjection(action.projectionId);
+      this.handlers.onProjectionChange(action.projectionId);
       return;
     }
 
     if (action.kind === "skin") {
-      this.setSkin(action.skinId);
+      this.handlers.onSkinChange(action.skinId);
+      return;
+    }
+
+    if (action.kind === "debug") {
+      this.handlers.onDebugToggle();
       return;
     }
 
@@ -121,7 +150,11 @@ export class AppController {
     this.render();
   }
 
-  private setProjection(projectionId: ProjectionId): void {
+  setProjection(projectionId: ProjectionId): void {
+    if (this.state.projectionId === projectionId) {
+      return;
+    }
+
     this.state = {
       ...this.state,
       projectionId,
@@ -129,11 +162,28 @@ export class AppController {
     this.render();
   }
 
-  private setSkin(skinId: SkinId): void {
+  setSkin(skinId: SkinId): void {
+    if (this.state.skinId === skinId) {
+      return;
+    }
+
     this.state = {
       ...this.state,
       skinId,
     };
+    this.render();
+  }
+
+  setDebug(debug: boolean): void {
+    if (this.state.debug === debug) {
+      return;
+    }
+
+    this.state = {
+      ...this.state,
+      debug,
+    };
+    this.renderer.setDebug(debug);
     this.render();
   }
 
@@ -183,9 +233,10 @@ export class AppController {
     const scene = buildScene(this.state.cube, projectionEntry.project, skins[this.state.skinId]);
     this.renderer.setScene(scene);
     this.instructionLabel.text = [
-      "Moves: U D F B L R | Shift=inverse | s=scramble | z=undo | Esc=reset | c/i=skin",
+      "Moves: U D F B L R | Shift=inverse | s=scramble | z=undo | Esc=reset | c/i=skin | 0=debug",
       `Projection: ${projectionNames[this.state.projectionId]} | 1 Grid | 2 Hex | 3 Net`,
       `Skin: ${skinNames[this.state.skinId]}`,
+      `Debug: ${this.state.debug ? "on" : "off"}`,
     ].join("\n");
     this.historyLabel.text = `History: ${this.state.moveHistory.join(" ") || "(empty)"}`;
   }

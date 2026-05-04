@@ -36,6 +36,9 @@ export type KeyboardAction =
       skinId: SkinId;
     }
   | {
+      kind: "debug";
+    }
+  | {
       kind: "reset";
     }
   | {
@@ -60,6 +63,12 @@ export function bindKeyboardInput(onAction: (action: KeyboardAction) => void): (
     if (skinId) {
       event.preventDefault();
       onAction({ kind: "skin", skinId });
+      return;
+    }
+
+    if (key === "0") {
+      event.preventDefault();
+      onAction({ kind: "debug" });
       return;
     }
 

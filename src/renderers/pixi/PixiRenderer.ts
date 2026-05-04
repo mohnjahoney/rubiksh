@@ -1,6 +1,5 @@
 import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text, Texture } from "pixi.js";
 import { FACES, type Face } from "../../core/types";
-import { DEBUG_SHOW_STICKER_IDS } from "../../debug";
 import type { VisualSticker } from "../../scene/types";
 import { faceImages } from "../../skin/faceImages";
 import { FACE_COLORS, type Material } from "../../skin/types";
@@ -44,6 +43,7 @@ export class PixiRenderer {
   private readonly faceTextures = new Map<Face, Texture>();
   private readonly tileTextures = new Map<string, Texture>();
   private lastScene: VisualSticker[] = [];
+  private showStickerIds = false;
   private isDestroyed = false;
 
   constructor(application: Application) {
@@ -79,21 +79,7 @@ export class PixiRenderer {
           body.mask = mask;
         }
 
-        const label = DEBUG_SHOW_STICKER_IDS
-          ? new Text({
-              text: visual.id,
-              style: {
-                fill: 0x111111,
-                fontFamily: "Menlo, Monaco, monospace",
-                fontSize: 48,
-                fontWeight: "700",
-                stroke: {
-                  color: 0xffffff,
-                  width: 4,
-                },
-              },
-            })
-          : undefined;
+        const label = this.showStickerIds ? this.createLabel(visual.id) : undefined;
         const initial = { ...target };
 
         container.addChild(body);
@@ -145,6 +131,36 @@ export class PixiRenderer {
     }
     this.tileTextures.clear();
     this.root.destroy({ children: true });
+  }
+
+  setDebug(showStickerIds: boolean): void {
+    if (this.showStickerIds === showStickerIds) {
+      return;
+    }
+
+    this.showStickerIds = showStickerIds;
+
+    for (const [id, rendered] of this.stickersById) {
+      if (showStickerIds && !rendered.label) {
+        rendered.label = this.createLabel(id);
+        rendered.container.addChild(rendered.label);
+        this.drawSticker(
+          rendered.container,
+          rendered.body,
+          rendered.border,
+          rendered.mask,
+          rendered.label,
+          rendered.current,
+          rendered.material,
+        );
+      }
+
+      if (!showStickerIds && rendered.label) {
+        rendered.container.removeChild(rendered.label);
+        rendered.label.destroy();
+        rendered.label = undefined;
+      }
+    }
   }
 
   private readonly tick = (): void => {
@@ -258,6 +274,25 @@ export class PixiRenderer {
     }
 
     return new Graphics();
+  }
+
+  private createLabel(text: string): Text {
+    const label = new Text({
+      text,
+      style: {
+        fill: 0x111111,
+        fontFamily: "Menlo, Monaco, monospace",
+        fontSize: 48,
+        fontWeight: "700",
+        stroke: {
+          color: 0xffffff,
+          width: 4,
+        },
+      },
+    });
+
+    label.anchor.set(0.5);
+    return label;
   }
 
   private updateMaterial(rendered: RenderedSticker, material: Material): void {
