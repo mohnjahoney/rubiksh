@@ -132,6 +132,13 @@ The goal is to preserve creative directions so they can be revisited later.
 
 ---
 
+## Video
+
+We currently have image capture happening with the camera.
+Got me thinking - what if a face (each face?) was a video instead of a still image.
+Maybe even a live video feed from somewhere.
+
+
 ## Notes
 
 - These ideas are intentionally unresolved

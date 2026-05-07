@@ -32,6 +32,10 @@ function lerp(start: number, end: number, alpha: number): number {
   return start + (end - start) * alpha;
 }
 
+function easeOut(t: number) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
 function closeEnough(a: number, b: number): boolean {
   return Math.abs(a - b) < 0.1;
 }
@@ -170,12 +174,12 @@ export class PixiRenderer {
 
   private readonly tick = (): void => {
     for (const rendered of this.stickersById.values()) {
-      rendered.current.x = lerp(rendered.current.x, rendered.target.x, 0.2);
-      rendered.current.y = lerp(rendered.current.y, rendered.target.y, 0.2);
-      rendered.current.width = lerp(rendered.current.width, rendered.target.width, 0.2);
-      rendered.current.height = lerp(rendered.current.height, rendered.target.height, 0.2);
-      rendered.current.cornerRadius = lerp(rendered.current.cornerRadius, rendered.target.cornerRadius, 0.2);
-      rendered.current.rotation = lerp(rendered.current.rotation, rendered.target.rotation, 0.2);
+      rendered.current.x = lerp(rendered.current.x, rendered.target.x, easeOut(t));
+      rendered.current.y = lerp(rendered.current.y, rendered.target.y, easeOut(t));
+      rendered.current.width = lerp(rendered.current.width, rendered.target.width, easeOut(t));
+      rendered.current.height = lerp(rendered.current.height, rendered.target.height, easeOut(t));
+      rendered.current.cornerRadius = lerp(rendered.current.cornerRadius, rendered.target.cornerRadius, easeOut(t));
+      rendered.current.rotation = lerp(rendered.current.rotation, rendered.target.rotation, easeOut(t));
 
       if (closeEnough(rendered.current.x, rendered.target.x)) {
         rendered.current.x = rendered.target.x;

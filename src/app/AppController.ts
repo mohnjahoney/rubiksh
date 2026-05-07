@@ -203,7 +203,7 @@ export class AppController {
   }
 
   private scramble(): void {
-    const moves = randomMoves(5);
+    const moves = randomMoves(1);
     const cube = moves.reduce((current, move) => applyMove(current, move), this.state.cube);
 
     this.state = {

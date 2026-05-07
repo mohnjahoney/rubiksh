@@ -7,8 +7,8 @@ type FaceCenter = {
 };
 
 export const floatingFacesHexConfig: ProjectionConfig = {
-  stickerSize: 48,
-  stickerGap: 5,
+  stickerSize: 60,
+  stickerGap: 3,
   faceGap: 85,
   cornerRadius: 8,
 };
